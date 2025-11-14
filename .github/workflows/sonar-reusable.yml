@@ -6,7 +6,10 @@ on:
       projectKey:
         required: true
         type: string
-      projectName:
+      sonarHostUrl:
+        required: true
+        type: string
+      sonarOrg:
         required: true
         type: string
     secrets:
@@ -18,8 +21,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
-      - name: Checkout source
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -43,16 +45,13 @@ jobs:
           key: m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: m2
 
-      - name: Build project
-        run: mvn -B clean verify
-
-      - name: SonarQube Scan (v5)
-        uses: SonarSource/sonarqube-scan-action@v5
+      - name: Maven Build + Sonar Scan
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=${{ inputs.projectKey }}
-            -Dsonar.projectName=${{ inputs.projectName }}
-            -Dsonar.sources=.
-            -Dsonar.java.binaries=target
+        run: |
+          mvn -B clean verify \
+            org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.projectKey=${{ inputs.projectKey }} \
+            -Dsonar.organization=${{ inputs.sonarOrg }} \
+            -Dsonar.host.url=${{ inputs.sonarHostUrl }} \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
